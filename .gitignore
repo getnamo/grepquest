@@ -3,3 +3,14 @@ dist/
 .sites-runtime/
 test-results/
 playwright-report/
+coverage/
+.openai/
+.env
+.env.*
+!.env.example
+*.local
+*.local.*
+*.log
+*.pid
+.npmrc
+.DS_Store

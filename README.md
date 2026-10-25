@@ -14,6 +14,12 @@ npm start
 
 Open http://127.0.0.1:3000. `PORT=3001 npm start` changes the port. The server binds to loopback by default.
 
+### Try it over your LAN
+
+Run `npm run start:lan` to listen on all network interfaces at port 3001. Open `http://<your-machine-LAN-IP>:3001` from a desktop or phone on the same network. Use your machine's current LAN IP; no device-specific address is stored in the project. The Node server runs the virtual command interpreter for connected clients.
+
+To choose a different interface or port, run `HOST=0.0.0.0 PORT=3002 npm start`. This project can be developed and served entirely locally; no hosted artifact or deployment is required.
+
 For frontend development, `npm run dev` starts Vite. This mode uses the browser worker. Production Node mode uses `/api/run` and a JavaScript worker thread for each command. A static deployment uses the identical engine in a browser Web Worker. Neither mode executes an OS shell.
 
 ## Isolation model

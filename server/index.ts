@@ -6,6 +6,7 @@ import { Worker } from 'node:worker_threads';
 import { createFiles, MISSIONS, isComplete } from '../src/missions.ts';
 const root = fileURLToPath(new URL('../dist/', import.meta.url));
 const port = Number(process.env.PORT ?? 3000);
+const host = process.env.HOST ?? '127.0.0.1';
 const types: Record<string, string> = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml' };
 function runVirtual(command: string, cwd: string): Promise<unknown> {
   return new Promise((resolveResult, reject) => {
@@ -53,4 +54,4 @@ const server = createServer(async (req, res) => {
     res.end(req.method === 'HEAD' ? undefined : data);
   } catch (error) { json(500, { error: (error as Error).message }); }
 });
-server.listen(port, '127.0.0.1', () => console.log(`Grep Quest: http://127.0.0.1:${port}`));
+server.listen(port, host, () => console.log(`Grep Quest listening on ${host}:${port}`));
