@@ -78,7 +78,7 @@ export const MISSIONS: Mission[] = [
 ];
 function canonical(text: string): string { return text.trim().split('\n').map(line => line.trim().replace(/\s+/g, ' ')).join('\n'); }
 export function isComplete(mission: Mission, result: Execution): boolean {
-  if (result.stderr || result.exitCode !== 0 || !result.stages.length || result.stages.some(s => s.command === 'echo')) return false;
+  if (result.stderr || result.exitCode !== 0 || !result.stages.length || result.stages.some(s => s.command === 'echo' || s.isHelp || s.action)) return false;
   if (mission.requiresPipe && result.stages.length < 2) return false;
   if (mission.mode === 'cwd') return result.cwd === mission.expected;
   if (mission.mode === 'listing') return canonical(result.stdout).includes(canonical(mission.expected));

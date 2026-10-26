@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { execute } from '../src/engine.ts';
+import { execute, COMMAND_HELP, HELP_TOPICS } from '../src/engine.ts';
 import { MISSIONS, createFiles, isComplete } from '../src/missions.ts';
 const run = (command: string, cwd = '/workspace') => execute(command, { cwd, files: createFiles() });
 for (const mission of MISSIONS) test(`Mission: ${mission.id}`, () => assert.equal(isComplete(mission, run(mission.solution)), true));
@@ -91,4 +91,90 @@ test('syntax errors, unsupported options and limits return helpful errors', () =
 test('no engine source imports a platform API or evaluates code', async () => {
   const source = await readFile(new URL('../src/engine.ts', import.meta.url), 'utf8');
   assert.doesNotMatch(source, /\bimport\b|\beval\s*\(|new Function|child_process|node:fs|fetch\s*\(/);
+});
+for (const name of Object.keys(COMMAND_HELP)) test(`detailed help: ${name}`, () => {
+  const result = run(`help ${name}`);
+  assert.equal(result.exitCode, 0);
+  assert.equal(result.stderr, '');
+  assert.match(result.stdout, /supported subset/);
+  assert.match(result.stdout, /Usage:\n/);
+  assert.match(result.stdout, /Examples:\n/);
+  assert.equal(result.cwd, '/workspace');
+  assert.equal(result.stages[0].isHelp, true);
+  if (name !== 'echo') {
+    const flagHelp = run(`${name} --help`);
+    assert.equal(flagHelp.stdout, result.stdout);
+    assert.equal(flagHelp.exitCode, 0);
+    assert.equal(flagHelp.stages[0].isHelp, true);
+  }
+});
+for (const name of Object.keys(HELP_TOPICS)) test(`shell concept help: ${name}`, () => {
+  const result = run(`help ${name}`);
+  assert.equal(result.exitCode, 0);
+  assert.match(result.stdout, /Examples:/);
+});
+test('overview makes command-specific help and shell conventions discoverable', () => {
+  const result = run('help');
+  assert.match(result.stdout, /grep --help/);
+  assert.match(result.stdout, /help cd/);
+  assert.match(result.stdout, /help pipes/);
+  assert.match(result.stdout, /Bash help covers builtins/);
+  assert.equal(result.stages[0].isHelp, true);
+});
+test('help flags work after supported options without consuming option values', () => {
+  assert.equal(run('ls -a --help').stdout, run('help ls').stdout);
+  assert.equal(run('grep -i --help').stdout, run('help grep').stdout);
+  assert.equal(run('head -n 2 --help').stdout, run('help head').stdout);
+  assert.equal(run('head -n --help').exitCode, 2);
+});
+test('help requests respect literal arguments, -- and grep pattern operands', () => {
+  const state = { cwd: '/workspace', files: { '/workspace/--help': '--help\nplain\n' } };
+  assert.equal(execute('cat -- --help', state).stdout, '--help\nplain\n');
+  assert.equal(execute('grep -- --help --help', state).stdout, '--help\n');
+  assert.equal(execute('grep -e --help --help', state).stdout, '--help\n');
+  assert.equal(execute('grep plain --help', state).stdout, 'plain\n');
+  assert.equal(run('echo --help').stdout, '--help\n');
+  assert.notEqual(run('echo --help').stages[0].isHelp, true);
+  assert.notEqual(execute('cat -- --help', state).stages[0].isHelp, true);
+});
+test('help can be piped but cannot manufacture mission evidence', () => {
+  const filtered = run("grep --help | grep 'Ignore case'");
+  assert.match(filtered.stdout, /-i  Ignore case/);
+  assert.equal(filtered.exitCode, 0);
+  const count = run('help grep | head -n 4 | wc -l');
+  assert.equal(count.stdout, '4\n');
+  assert.equal(isComplete(MISSIONS.find(m => m.id === 'count-impact')!, count), false);
+  assert.equal(isComplete({ ...MISSIONS[0], expected: filtered.stdout }, filtered), false);
+});
+test('unknown help targets and options guide the learner without exposing internals', () => {
+  for (const source of ['help absent', 'help constructor', 'help __proto__', 'help grep extra', 'missing --help']) {
+    const result = run(source);
+    assert.equal(result.exitCode, 2);
+    assert.match(result.stderr, /help/);
+  }
+  for (const name of ['ls', 'cat', 'head', 'tail', 'grep', 'sort', 'uniq', 'wc']) assert.match(run(`${name} -Z`).stderr, new RegExp(`${name} --help`));
+});
+test('game controls return typed actions without changing virtual shell state', () => {
+  const cases = [
+    ['mission', { type: 'mission' }], ['mission 3', { type: 'mission', number: 3 }],
+    ['hint', { type: 'hint' }], ['next-mission', { type: 'next-mission' }],
+    ['focus', { type: 'focus', mode: 'toggle' }], ['focus on', { type: 'focus', mode: 'on' }], ['focus off', { type: 'focus', mode: 'off' }],
+  ] as const;
+  for (const [command, action] of cases) {
+    const result = run(command);
+    assert.equal(result.exitCode, 0);
+    assert.equal(result.cwd, '/workspace');
+    assert.deepEqual(result.stages[0].action, action);
+    assert.equal(isComplete({ ...MISSIONS[0], expected: '' }, result), false);
+  }
+});
+test('game controls reject invalid arguments and cannot run inside a pipeline', () => {
+  for (const command of ['mission 0', 'mission -1', 'mission nope', 'mission 1 2', 'mission 99999999999999999999', 'hint extra', 'next-mission now', 'focus yes', 'focus on off', 'pwd | next-mission', 'mission | wc -l', 'focus off | cat']) {
+    const result = run(command);
+    assert.equal(result.exitCode, 2, command);
+    assert.equal(result.stages.some(stage => stage.action), false, command);
+  }
+  const helpPipeline = run("next-mission --help | grep 'Game control'");
+  assert.equal(helpPipeline.exitCode, 0);
+  assert.equal(helpPipeline.stages.some(stage => stage.action), false);
 });

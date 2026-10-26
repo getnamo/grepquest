@@ -35,10 +35,23 @@ Progress lives in localStorage in the current browser. There are no accounts, cr
 - `pwd`, `ls -a`, `cd`, `cat`, `head -n N`, `tail -n N`
 - `grep -i -v -n -r -l -c -F -E -h -H -w -x`, plus `--` and `-e pattern`
 - `sort -n -r`, `uniq -c`, `wc -l -w -c`, `echo`, `help`, `clear`
+- `tee -a` for designated virtual control files in cyberspace mode
 - Single and double quotes, backslash escaping, relative and absolute virtual paths, unquoted `*`/`?` filename globs, and pipelines.
 - Standard output, standard error, exit codes, and per-stage pipeline results. A pipeline's exit code is its last stage's, while all stage errors remain visible.
 
-This is an explicitly limited Bash-style environment, not a full Bash implementation. There are no writes, redirections, scripts, loops, variables, substitutions, command lists, networking, or real executables. Grep's regex subset uses JavaScript regex internally, with a basic-regex translation; lookaround, backreferences, and POSIX character classes are rejected. Sorting uses predictable codepoint ordering rather than a host locale. `ls` shows directory suffixes for discoverability. Some flag combinations, multi-file formatting, and edge cases differ from GNU utilities. Full GNU conformance is not claimed.
+### Help inside the terminal
+
+Use `help` for the overview, `grep --help` or `ls --help` for supported flags and examples, and `help cd` for a builtin. `help <command>` works for every supported command in this lab. `help pipes`, `help quoting`, and `help globs` explain shell concepts. Help output can be filtered through pipelines and does not count toward mission completion. Terminal shortcuts and Tab completion help you discover these references.
+
+`--help` is a convention, not a universal Bash feature. GNU utilities commonly accept it, while other implementations vary; Bash's `help` documents builtins. In particular, the builtin `echo --help` prints literal text, so use `help echo`. This lab preserves that behavior and labels its references as a supported subset, rather than full system manuals.
+
+### Stay in the CLI
+
+Use the terminal's **Focus** button or type `focus` to fill the webpage with the terminal. The rest of the layout is hidden without using the browser's fullscreen API. Escape, **Restore layout**, or `focus off` returns to the full page. The focus preference is saved in this browser, and toggling it preserves your input draft, transcript, and progress.
+
+Mission completion appears directly in the transcript. Type `next-mission` to continue once the current mission is complete; the next objective appears in the terminal and command history is preserved. After the final mission, this command enters free practice. Use `mission` to review the objective, `hint` for progressive hints, or `mission <number>` to open or replay a particular mission. These are game controls, separate from the Bash-style commands, and must run outside pipelines. Each also has `--help`.
+
+This is an explicitly limited Bash-style environment, not a full Bash implementation. The course is read-only; cyberspace enables tee writes to designated virtual controls. There are no redirections, scripts, loops, variables, substitutions, command lists, networking, or real executables. Grep's regex subset uses JavaScript regex internally, with a basic-regex translation; lookaround, backreferences, and POSIX character classes are rejected. Sorting uses predictable codepoint ordering rather than a host locale. `ls` shows directory suffixes for discoverability. Some flag combinations, multi-file formatting, and edge cases differ from GNU utilities. Full GNU conformance is not claimed.
 
 ## Structure
 
@@ -64,6 +77,25 @@ npx playwright test
 
 The engine tests exercise every mission, alternative solutions, syntax, paths, grep semantics, and isolation. Browser checks complete the course, verify persistence, test mobile views and narrow layouts, exercise both execution modes, and confirm recovery from a pathological regex. Set `PLAYWRIGHT_BROWSERS_PATH` when your environment requires a custom browser install location.
 
-Browser checks currently target Chromium, including mobile viewport emulation. Physical device keyboard behavior, Firefox, and Safari still need manual validation. Mission data is currently fixed; randomized replay datasets and cross-device progress are future work.
+Browser checks currently target Chromium, including mobile viewport emulation. Physical device keyboard behavior, Firefox, and Safari still need manual validation. Course mission data is fixed; cyberspace generates seeded evidence for each run. Randomized course datasets and cross-device progress are future work.
 
 Self-hosted DM Sans and IBM Plex Mono fonts use the SIL Open Font License; license files are in `public/fonts/`.
+
+## NULL//RUN: cyberspace mode
+
+Open `/cyber.html`, or choose **NULL//RUN** in the course header. This is a separate first playable mode: a third-person 3D stealth race against ECHO-9, the rogue system's deterministic recovery bot. Grep Quest course progress is separate.
+
+Move through a neon grid, use cover to avoid sentinel scan cones, and interface with five nodes. Each node teaches a filtering task whose output changes a designated virtual control file through `tee`. Successful patches lower gates, disable a sentinel, weaken detection, and ultimately broadcast an escape signal. The rival moves through the same nodes and evaluates authored commands against its own copy of the same files; it is not an LLM or a remote opponent.
+
+- **Desktop:** WASD/arrows move, Shift sneaks, E interfaces, Escape disconnects or pauses, P pauses.
+- **Mobile:** tap the ground, set a waypoint, or use the directional pad. Use the Interface button within range.
+- **Terminal:** `mission`, `hint`, `status`, `help`, `grep --help`, `tee --help`, `focus`, `jack-out`, and `next-node` support the loop.
+- **Moderate:** the bot keeps racing during terminal work; detection returns you to your last liberated node with a small race penalty.
+- **Easy:** the bot takes 2.4 times as long to solve each node, detection rises more slowly, and detection adds no extra race penalty.
+- **Pause:** freezes both racers and patrols, including when the page loses focus. Node terminals shield you from patrols, while the bot continues racing.
+
+Checkpoint retry preserves liberated nodes within the current run. Restart or page reload begins a new run; only difficulty preference persists. Terminal writes are opt-in, limited to the currently connected node's virtual control file, and never reach Node's or the browser host's filesystem. Course files stay read-only. There is no multiplayer service or account sync. Two-player versus racing is a future stretch goal.
+
+The 3D scene uses locally bundled Three.js and procedural geometry; it makes no image, model, or LLM service calls. WebGL 2 is required, and unsupported browsers get an explanatory screen with a link back to the course. Visual effects and touch controls have browser automation coverage; physical mobile GPU/keyboard testing remains useful before wider distribution.
+
+`src/cyber/model.ts` contains the testable race, collision, detection, checkpoint, pathfinding, and objective logic. `src/cyber/world.ts` renders the grid. `src/cyber/main.ts` connects controls, the worker-based virtual shell, and the UI. The separate HTML entry keeps 3D assets out of the course's initial bundle.
