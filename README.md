@@ -94,8 +94,46 @@ Move through a neon grid, use cover to avoid sentinel scan cones, and interface 
 - **Easy:** the bot takes 2.4 times as long to solve each node, detection rises more slowly, and detection adds no extra race penalty.
 - **Pause:** freezes both racers and patrols, including when the page loses focus. Node terminals shield you from patrols, while the bot continues racing.
 
-Checkpoint retry preserves liberated nodes within the current run. Restart or page reload begins a new run; only difficulty preference persists. Terminal writes are opt-in, limited to the currently connected node's virtual control file, and never reach Node's or the browser host's filesystem. Course files stay read-only. There is no multiplayer service or account sync. Two-player versus racing is a future stretch goal.
+Checkpoint retry preserves liberated nodes within the current run. Restart or page reload begins a new run; only difficulty preference persists. Terminal writes are opt-in, limited to the currently connected node's virtual control file, and never reach Node's or the browser host's filesystem. Course files stay read-only. Solo runs do not require multiplayer or account sync. For races against other people, use the separate Concourse mode below.
 
 The 3D scene uses locally bundled Three.js and procedural geometry; it makes no image, model, or LLM service calls. WebGL 2 is required, and unsupported browsers get an explanatory screen with a link back to the course. Visual effects and touch controls have browser automation coverage; physical mobile GPU/keyboard testing remains useful before wider distribution.
 
 `src/cyber/model.ts` contains the testable race, collision, detection, checkpoint, pathfinding, and objective logic. `src/cyber/world.ts` renders the grid. `src/cyber/main.ts` connects controls, the worker-based virtual shell, and the UI. The separate HTML entry keeps 3D assets out of the course's initial bundle.
+
+
+## The Concourse: multiplayer races
+
+Open `/multiplayer.html` on the running Node server, or choose **VERSUS** from the course or solo game. Have every player open the same server URL from their desktop or phone. The online count represents connected browser tabs. Multiplayer uses a WebSocket connection on the same HTTP port; a static server or Vite alone does not host the lobby.
+
+Start locally with `npm run build` and `npm run start:lan`. Each player gets an anonymous call sign and can change it with `/nick <name>`.
+
+```text
+/nick Glitch
+/create               # Default: two players, moderate detection
+/create 4 easy        # Four players, gentler detection
+/ls                   # Show waiting rooms
+/join 1234            # Join a broadcast room number
+/who                  # List online players and wins
+/leave                # Leave or cancel a waiting room; forfeit a live race
+/rematch              # Create a fresh room after a finished race
+/me waves             # Lobby emote
+/gg                   # Good game
+/help                 # Lobby command reference
+/clear                # Clear your local lobby transcript
+```
+
+Type ordinary text to chat. A creator's waiting room disappears immediately if they leave, close the tab, refresh, or navigate away. Other waiting players return to the lobby. When the last seat fills, every participant enters a three-second countdown automatically. Leaving during the countdown cancels that launch; there is no ready button to get stuck on.
+
+Tab completes slash commands and room IDs in the lobby. Inside a node terminal, it completes commands, help topics, supported flags, and virtual file paths, including paths relative to `cd` and commands after a pipe. Ambiguous prefixes show their matching choices. The terminal's **Tab ↹** button provides the same completion on mobile.
+
+The arena is circular. Two players spawn opposite each other; three or four start at evenly spaced positions. All receive the same seeded evidence. Each runner must solve five terminal objectives before crossing their own concentric access layers. Cover, sentinel cones, sneaking, and checkpoint detection work alongside the command puzzles. WASD/arrows move relative to your camera, E interfaces, and touch controls and server-calculated waypoints support mobile. Your circular minimap, colored avatars, progress bars, and in-terminal rival strip show how far everyone has advanced.
+
+There is no individual pause in a competitive match. Hiding a tab stops its movement input while the race continues. A broken connection has a 20-second reconnect window; reload the same tab to resume the same active race. After the grace window, the player forfeits. Explicit `/leave` forfeits immediately. Last remaining runners win if everyone else forfeits; simultaneous disconnect expiry does not award a phantom winner. Races have a 20-minute limit, resolved by completed layers and then distance to the center.
+
+The first valid uplink patch ends the match. Results are broadcast into lobby chat and shown to all participants. Return to the lobby, send `/gg`, or create a rematch room. Lobby history, rooms, reconnect sessions, and session win counts live only in Node memory and reset when the server restarts. The browser retains its nickname in localStorage and its opaque reconnect token in sessionStorage. No accounts, database, cloud service, or credentials are needed.
+
+Basic movement and collisions run immediately on the player's device using the shared arena simulation. Clients send sequenced movement inputs at 30 packets per second; the server validates and simulates them at 60 Hz, then sends authoritative snapshots at 30 Hz. Acknowledged inputs let the client reconcile its position and replay pending inputs. Remote players interpolate through a small snapshot buffer, while patrol animation and local movement render on every animation frame at the browser's refresh rate. Checkpoint teleports clear old predictions immediately. The server decides detection, node proximity, virtual files, solution checks, winners, and results; clients cannot submit authoritative positions or completion claims.
+
+Player commands run in bounded worker threads using the same virtual interpreter, with only the connected control file writable. Public race snapshots contain positions and progress, not another player's terminal output or filesystem. Message limits, per-client throttling, heartbeat cleanup, and same-origin browser connection checks bound the local service. This is a friendly LAN game, not an account-backed ranking service.
+
+`server/multiplayer.ts` manages lobby and socket lifecycle. `src/multiplayer/arena.ts` defines the shared simulation and public message types. `src/multiplayer/netcode.ts` handles local prediction and snapshot interpolation; `completion.ts` handles terminal completion. `src/multiplayer/world.ts` renders the circular arena, and `src/multiplayer/main.ts` implements chat and race controls. `server/executor.ts` bounds command execution for both the course API and multiplayer. Tests cover multi-client presence and chat, two- and four-player room lifecycle, reconnects and forfeits, authoritative puzzle validation, winner broadcasts, input reconciliation and collision limits, snapshot interpolation, terminal completion, and an actual two-browser race to completion.

@@ -32,7 +32,7 @@ const app = document.querySelector<HTMLDivElement>('#app')!;
 app.innerHTML = `
   <header class="topbar">
     <a class="brand" href="#" aria-label="Grep Quest home"><span class="brand-mark">&gt;_</span><span>grep<span class="brand-light">quest</span><span class="beta">BETA</span></span></a>
-    <a class="cyber-mode-link" href="/cyber.html"><span class="live-dot"></span> NULL//RUN <span>CYBERSPACE MODE ↗</span></a>
+    <nav class="mode-links" aria-label="Game modes"><a class="cyber-mode-link" href="/cyber.html"><span class="live-dot"></span> NULL//RUN <span>SOLO MODE ↗</span></a><a class="versus-mode-link" href="/multiplayer.html">VERSUS <span>2–4 PLAYERS ↗</span></a></nav>
     <button class="guide-button" data-action="guide">${icons.book}<span>Field guide</span><kbd>?</kbd></button>
   </header>
   <div class="layout">

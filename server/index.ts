@@ -2,21 +2,13 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { resolve, sep } from 'node:path';
-import { Worker } from 'node:worker_threads';
+import { runVirtual } from './executor.ts';
+import { MultiplayerHub } from './multiplayer.ts';
 import { createFiles, MISSIONS, isComplete } from '../src/missions.ts';
 const root = fileURLToPath(new URL('../dist/', import.meta.url));
 const port = Number(process.env.PORT ?? 3000);
 const host = process.env.HOST ?? '127.0.0.1';
 const types: Record<string, string> = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml' };
-function runVirtual(command: string, cwd: string): Promise<unknown> {
-  return new Promise((resolveResult, reject) => {
-    // This is a JavaScript worker, not an OS shell or subprocess.
-    const worker = new Worker(new URL('./runner.ts', import.meta.url), { workerData: { command, state: { cwd, files: createFiles() } }, resourceLimits: { maxOldGenerationSizeMb: 32 } });
-    const timer = setTimeout(() => { void worker.terminate(); reject(Error('Command timed out. Simplify your pattern.')); }, 1500);
-    worker.once('message', result => { clearTimeout(timer); void worker.terminate(); resolveResult(result); });
-    worker.once('error', error => { clearTimeout(timer); reject(error); });
-  });
-}
 let activeCommands = 0;
 const server = createServer(async (req, res) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -37,7 +29,7 @@ const server = createServer(async (req, res) => {
       if (typeof command !== 'string' || command.length > 4096 || typeof cwd !== 'string' || cwd.length > 256 || !cwd.startsWith('/')) { json(400, { error: 'Invalid command or virtual directory.' }); return; }
       activeCommands++;
       try {
-        const result = await runVirtual(command, cwd) as import('../src/engine.ts').Execution;
+        const result = await runVirtual(command, { cwd, files: createFiles() }) as import('../src/engine.ts').Execution;
         const mission = MISSIONS.find(m => m.id === missionId);
         json(200, { ...result, complete: mission ? isComplete(mission, result) : false });
       } finally { activeCommands--; }
@@ -54,4 +46,6 @@ const server = createServer(async (req, res) => {
     res.end(req.method === 'HEAD' ? undefined : data);
   } catch (error) { json(500, { error: (error as Error).message }); }
 });
+const multiplayer = new MultiplayerHub(server);
+server.on('close', () => multiplayer.close());
 server.listen(port, host, () => console.log(`Grep Quest listening on ${host}:${port}`));

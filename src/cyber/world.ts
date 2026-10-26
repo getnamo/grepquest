@@ -2,13 +2,13 @@ import * as THREE from 'three';
 import { COVERS, GATES, patrols, distance } from './model.ts';
 import type { Game, Vec } from './model.ts';
 const CYAN = 0x39e7f5, RED = 0xff4468, PINK = 0xe16dff, GREEN = 0x99ffd0;
-function lineBox(w: number, h: number, d: number, color: number) {
+export function lineBox(w: number, h: number, d: number, color: number) {
   return new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(w, h, d)), new THREE.LineBasicMaterial({ color, transparent: true, opacity: .65 }));
 }
-function solid(w: number, h: number, d: number, color: number) {
+export function solid(w: number, h: number, d: number, color: number) {
   return new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshStandardMaterial({ color, roughness: .65, metalness: .35 }));
 }
-function label(text: string, color: string, size = 4) {
+export function label(text: string, color: string, size = 4) {
   const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 96;
   const ctx = canvas.getContext('2d')!;
   ctx.font = '500 36px monospace'; ctx.textAlign = 'center'; ctx.fillStyle = color; ctx.fillText(text, 256, 58);
@@ -16,7 +16,7 @@ function label(text: string, color: string, size = 4) {
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false }));
   sprite.scale.set(size, size * 96 / 512, 1); return sprite;
 }
-function runner(color: number) {
+export function runner(color: number) {
   const group = new THREE.Group();
   const material = new THREE.MeshStandardMaterial({ color: 0x0d2637, emissive: color, emissiveIntensity: .45, roughness: .3 });
   const torso = new THREE.Mesh(new THREE.BoxGeometry(.7, 1.05, .4), material); torso.position.y = 1.3; group.add(torso);
